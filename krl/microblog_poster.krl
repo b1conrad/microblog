@@ -1,4 +1,4 @@
-ruleset microblog_poster.krl {
+ruleset microblog_poster {
   meta {
     use module app.bsky.sdk alias sdk
     shares index
