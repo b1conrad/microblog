@@ -16,6 +16,10 @@ body { font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
   </head>
   <body>
 <h1>Microblog Poster</h1>
+<form action="#{meta:host}/sky/event/#{meta:eci}/none/microblog_poster/new_post">
+<textarea name="post"></textarea>
+<button type="submit">Post</button>
+</form>
   </body>
 </html>
 >>
