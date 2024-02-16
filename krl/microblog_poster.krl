@@ -20,6 +20,11 @@ body { font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
 <textarea name="text"></textarea>
 <button type="submit">Post</button>
 </form>
+#{ent:last_response.isnull() => "" | <<
+<hr>
+<p>Last response: #{ent:last_response.get("status_code")}</p>
+<p>#{last_response_content().encode()}</p>
+>>}
   </body>
 </html>
 >>
