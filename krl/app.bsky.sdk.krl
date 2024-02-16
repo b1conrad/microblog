@@ -3,9 +3,9 @@ ruleset app.bsky.sdk {
     provide sendPost
   }
   global {
-    url = "https://bsky.social/xrpc/com.atproto.server."
-    recURL = url + "createRecord"
+    url = "https://bsky.social/xrpc/com.atproto."
     sendPost = defaction(text){
+      recURL = url + "repo.createRecord"
       hdrs = {"Authorization":"Bearer "+ent:accessJwt}
 .klog("hdrs")
       record = {
