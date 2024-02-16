@@ -16,7 +16,7 @@ ruleset app.bsky.sdk {
       record = {
         "repo":ent:identifier,
         "collection":"app.bsky.feed.post",
-        "record":text,
+        "record":post,
       }
 .klog("record")
       http:post(recURL,headers=hdrs,json=record) setting(resp)
