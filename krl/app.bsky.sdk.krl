@@ -8,11 +8,15 @@ ruleset app.bsky.sdk {
       recURL = url + "repo.createRecord"
       hdrs = {"Authorization":"Bearer "+ent:accessJwt}
 .klog("hdrs")
+      post = {
+        "$type": "app.bsky.feed.post",
+        "text": text,
+        "createdAt":time:now(),
+      }
       record = {
         "repo":ent:identifier,
         "collection":"app.bsky.feed.post",
         "record":text,
-        "createdAt":time:now(),
       }
 .klog("record")
       http:post(recURL,headers=hdrs,json=record) setting(resp)
