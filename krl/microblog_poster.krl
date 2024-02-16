@@ -1,7 +1,7 @@
 ruleset microblog_poster {
   meta {
     use module app.bsky.sdk alias sdk
-    shares index, last_response
+    shares index, last_response, last_response_content
   }
   global {
     index = function(_headers){
@@ -26,6 +26,9 @@ body { font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
     }
     last_response = function(){
       ent:last_response
+    }
+    last_response_content = function(){
+      ent:last_response.get("content")
     }
   }
   rule sendPost {
