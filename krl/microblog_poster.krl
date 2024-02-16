@@ -30,7 +30,10 @@ body { font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
   }
   rule sendPost {
     select when microblog_poster new_post
-    sdk:sendPost(event:attrs.get("text")) setting(resp)
+    every {
+      sdk:sendPost(event:attrs.get("text")) setting(resp)
+      send_directive("response",{"resp":resp})
+    }
     fired {
       ent:last_response := resp
     }
