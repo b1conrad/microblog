@@ -33,4 +33,36 @@ ruleset app.bsky.sdk {
       ent:accessJwt := jwt
     }
   }
+  rule getAccessToken {
+    select when bsky session_expired
+      identifier re#(.+)#
+      password re#(.+)#
+      setting(id,pswd)
+    pre {
+      atURL = url + "server.createSession"
+      authn = {
+        "identifier": id,
+        "password": pswd,
+      }
+    }
+    http:post(atURL,json=authn) setting(resp)
+    fired {
+      raise bsky event "new_token" attributes resp if resp{"status_code"}==200
+    }
+  }
+  rule saveToken {
+    select when bsky new_token
+    pre {
+      content = event:attrs{"content"}.decode()
+.klog("content")
+      did = content{"did"}
+.klog("did")
+      jwt = content{"accessJwt"}
+.klog("jwt")
+    }
+    fired {
+      ent:identifier := did
+      ent:accessJwt := jwt
+    }
+  }
 }
