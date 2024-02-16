@@ -28,7 +28,7 @@ body { font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
       ent:last_response
     }
     last_response_content = function(){
-      ent:last_response.get("content")
+      ent:last_response.get("content").decode()
     }
   }
   rule sendPost {
