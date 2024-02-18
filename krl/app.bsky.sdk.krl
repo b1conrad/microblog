@@ -27,10 +27,11 @@ ruleset app.bsky.sdk {
     select when bsky new_configuration
       identifier re#(.+)#
       accessJwt re#(.+)#
-      setting(id,jwt)
+      setting(did,jwt)
     fired {
-      ent:identifier := id
+      ent:identifier := did
       ent:accessJwt := jwt
+      ent:refreshJwt := event:attrs{"refreshJwt"}
     }
   }
   rule refreshSession {
