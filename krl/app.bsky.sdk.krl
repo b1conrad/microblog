@@ -33,6 +33,20 @@ ruleset app.bsky.sdk {
       ent:accessJwt := jwt
     }
   }
+  rule refreshSession {
+    select when bsky token_expired
+    pre {
+      rsURL = url + "server.refreshSession"
+      hdrs = {
+        "Authorization": "Bearer " + ent:refreshJwt,
+      }
+    }
+    http:post(rsURL,headers=hdrs) setting(resp)
+    fired {
+      raise bsky event "response_received" attributes resp
+      raise bsky event "new_tokens" attributes resp if resp{"status_code"}==200
+    }
+  }
   rule getAccessToken {
     select when bsky session_expired
       identifier re#(.+)#
@@ -47,11 +61,11 @@ ruleset app.bsky.sdk {
     }
     http:post(atURL,json=authn) setting(resp)
     fired {
-      raise bsky event "new_token" attributes resp if resp{"status_code"}==200
+      raise bsky event "new_tokens" attributes resp if resp{"status_code"}==200
     }
   }
   rule saveToken {
-    select when bsky new_token
+    select when bsky new_tokens
     pre {
       content = event:attrs{"content"}.decode()
 .klog("content")
@@ -59,10 +73,13 @@ ruleset app.bsky.sdk {
 .klog("did")
       jwt = content{"accessJwt"}
 .klog("jwt")
+      rfs = content{"refreshJwt"}
+.klog("rfs")
     }
     fired {
       ent:identifier := did
       ent:accessJwt := jwt
+      ent:refreshJwt := rfs
     }
   }
 }
