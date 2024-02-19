@@ -1,5 +1,6 @@
 ruleset microblog_poster {
   meta {
+    use module io.picolabs.wrangler alias wrangler
     use module app.bsky.sdk alias sdk
     shares index, last_response, last_response_content
   }
@@ -37,7 +38,7 @@ body { font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
     }
   }
   rule initialize {
-    select when wrangler ruleset_installed where event:attrs{"rid"} >< meta:rid
+    select when wrangler ruleset_installed where event:attrs{"rids"} >< meta:rid
     pre {
       event_policy = {
         "allow":[{"domain":"bsky","name":"*"},
