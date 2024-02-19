@@ -64,8 +64,14 @@ body { font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
     }
     if referrer then send_directive("_redirect",{"url":referrer})
   }
-  rule sendPostSecondAttempt {
+  rule waitOneBeatForSecondAttempt {
     select when microblog_poster retry_needed
+    fired {
+      raise microblog_poster event "ready_to_retry" attributes event:attrs
+    }
+  }
+  rule sendPostSecondAttempt {
+    select when microblog_poster ready_to_retry
     sdk:sendPost(event:attrs.get("text")) setting(resp)
     fired {
       ent:last_response := resp
