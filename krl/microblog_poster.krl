@@ -36,6 +36,24 @@ body { font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
       ent:last_response.get("content").decode()
     }
   }
+  rule initialize {
+    select when wrangler ruleset_installed where event:attrs{"rid"} >< meta:rid
+    pre {
+      event_policy = {
+        "allow":[{"domain":"bsky","name":"*"},
+                 {"domain":"microblog_poster","name":"*"}],
+        "deny":[]
+      }
+      query_policy = {
+        "allow":[{"rid":"app.bsky.sdk","name":"*"},
+                 {"rid":"microblog_poster","name":"*"}],
+        "deny":[]
+      }
+      tags = ["microblog","poster"]
+    }
+    if wrangler:channels(tags).length()==0 then
+      wrangler:createChannel(tags, event_policy, query_policy)
+  }
   rule sendPost {
     select when microblog_poster new_post
     sdk:sendPost(event:attrs.get("text")) setting(resp)
