@@ -38,10 +38,35 @@ body { font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
   }
   rule sendPost {
     select when microblog_poster new_post
-    every {
-      sdk:sendPost(event:attrs.get("text")) setting(resp)
-      send_directive("response",{"resp":resp})
+    sdk:sendPost(event:attrs.get("text")) setting(resp)
+    fired {
+      ent:last_response := resp
     }
+  }
+  rule checkPostResponse {
+    select when microblog_poster new_post
+    pre {
+      status_code = ent:last_response.get("status_code")
+.klog("status_code")
+      content = ent:last_response.get("content").decode()
+      expired_token = content.get("error") == "ExpiredToken"
+    }
+    if status_code >= 400 || expired_token then noop()
+    fired {
+      raise bsky event "token_expired"
+      raise microblog_poster event "retry_needed" attributes event:attrs
+    }
+  }
+  rule redirectBack {
+    select when microblog_poster new_post
+    pre {
+      referrer = event:attrs{"_headers"}.get("referer") // sic
+    }
+    if referrer then send_directive("_redirect",{"url":referrer})
+  }
+  rule sendPostSecondAttempt {
+    select when microblog_poster retry_needed
+    sdk:sendPost(event:attrs.get("text")) setting(resp)
     fired {
       ent:last_response := resp
     }
