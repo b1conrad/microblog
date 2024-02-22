@@ -62,38 +62,11 @@ body { font-family: "Helvetica Neue",Helvetica,Arial,sans-serif; }
       ent:last_response := resp
     }
   }
-  rule checkPostResponse {
-    select when microblog_poster new_post
-    pre {
-      status_code = ent:last_response.get("status_code")
-.klog("status_code")
-      content = ent:last_response.get("content").decode()
-      expired_token = content.get("error") == "ExpiredToken"
-    }
-    if status_code >= 400 || expired_token then noop()
-    fired {
-      raise bsky event "token_expired"
-      raise microblog_poster event "retry_needed" attributes event:attrs
-    }
-  }
   rule redirectBack {
     select when microblog_poster new_post
     pre {
       referrer = event:attrs{"_headers"}.get("referer") // sic
     }
     if referrer then send_directive("_redirect",{"url":referrer})
-  }
-  rule waitOneBeatForSecondAttempt {
-    select when microblog_poster retry_needed
-    fired {
-      raise microblog_poster event "ready_to_retry" attributes event:attrs
-    }
-  }
-  rule sendPostSecondAttempt {
-    select when microblog_poster ready_to_retry
-    sdk:sendPost(event:attrs.get("text")) setting(resp)
-    fired {
-      ent:last_response := resp
-    }
   }
 }
