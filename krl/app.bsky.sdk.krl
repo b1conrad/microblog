@@ -1,13 +1,23 @@
 ruleset app.bsky.sdk {
   meta {
+    use module io.picolabs.wrangler alias wrangler
     provide sendPost
   }
   global {
     url = "https://bsky.social/xrpc/com.atproto."
-    sendPost = defaction(text){
-      recURL = url + "repo.createRecord"
-      hdrs = {"Authorization":"Bearer "+ent:accessJwt}
-.klog("hdrs")
+    recURL = url + "repo.createRecord"
+    rsURL = url + "server.refreshSession"
+    self = function(){
+      wrangler:channels("system,self").head().get("id")
+    }
+    refresh = defaction(){
+      hdrs = {
+        "Authorization": "Bearer " + ent:refreshJwt,
+      }
+      http:post(rsURL,headers=hdrs) setting(resp)
+      return resp.get("content").decode()
+    }
+    makeRecordFromText = function(text){
       post = {
         "$type": "app.bsky.feed.post",
         "text": text,
@@ -18,34 +28,50 @@ ruleset app.bsky.sdk {
         "collection":"app.bsky.feed.post",
         "record":post,
       }
-.klog("record")
-      http:post(recURL,headers=hdrs,json=record) setting(resp)
-      return resp
+      record
     }
-  }
-  rule configure {
-    select when bsky new_configuration
-      identifier re#(.+)#
-      accessJwt re#(.+)#
-      setting(did,jwt)
-    fired {
-      ent:identifier := did
-      ent:accessJwt := jwt
-      ent:refreshJwt := event:attrs{"refreshJwt"}
+    refreshThenPost = defaction(text){
+      hdrs = function(tokens_map){
+        {"Authorization":"Bearer "+tokens_map.get("accessJwt")}
+      }
+      record = makeRecordFromText(text)
+      every {
+        refresh() setting(tokens)
+        event:send({"eci":self(),"domain":"bsky","type":"new_tokens","attrs":tokens})
+        http:post(recURL,headers=hdrs(tokens),json=record) setting(resp2)
+      }
+      return resp2
+    }
+    checkPost = defaction(text,resp){
+      resp_ok = resp.get("status_code") == 200
+      resp_switch = resp_ok => "OK" | "ExpiredToken"
+      choose resp_switch {
+        OK => noop()
+        ExpiredToken => refreshThenPost(text) setting(resp2)
+      }
+      return resp_ok => resp | resp2
+    }
+    sendPost = defaction(text){
+      hdrs = {"Authorization":"Bearer "+ent:accessJwt}
+      record = makeRecordFromText(text)
+      every {
+        http:post(recURL,headers=hdrs,json=record) setting(resp)
+        checkPost(text,resp) setting(resp2)
+      }
+      return resp2
     }
   }
   rule refreshSession {
     select when bsky token_expired
     pre {
-      rsURL = url + "server.refreshSession"
       hdrs = {
         "Authorization": "Bearer " + ent:refreshJwt,
       }
     }
     http:post(rsURL,headers=hdrs) setting(resp)
     fired {
-      raise bsky event "response_received" attributes resp
-      raise bsky event "new_tokens" attributes resp if resp{"status_code"}==200
+      raise bsky event "new_tokens" attributes resp{"content"}.decode()
+        if resp{"status_code"}==200
     }
   }
   rule getAccessToken {
@@ -62,21 +88,21 @@ ruleset app.bsky.sdk {
     }
     http:post(atURL,json=authn) setting(resp)
     fired {
-      raise bsky event "new_tokens" attributes resp if resp{"status_code"}==200
+      raise bsky event "new_tokens" attributes resp{"content"}.decode()
+        if resp{"status_code"}==200
     }
   }
-  rule saveToken {
+  rule saveTokens {
     select when bsky new_tokens
     pre {
-      content = event:attrs{"content"}.decode()
-.klog("content")
-      did = content{"did"}
+      did = event:attrs{"did"}
 .klog("did")
-      jwt = content{"accessJwt"}
+      jwt = event:attrs{"accessJwt"}
 .klog("jwt")
-      rfs = content{"refreshJwt"}
+      rfs = event:attrs{"refreshJwt"}
 .klog("rfs")
     }
+    if did && jwt && rfs then noop() // sanity
     fired {
       ent:identifier := did
       ent:accessJwt := jwt
