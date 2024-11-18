@@ -1,6 +1,6 @@
 # microblog
 
-An experiment in using PicoStack to access an API, in this case from Bluesky. This [GitHub repository](https://github.com/b1conrad/microblog) is 100% KRL.
+An experiment in using [PicoStack](https://PicoStack.org/) to access an API, in this case from Bluesky. This [GitHub repository](https://github.com/b1conrad/microblog) is 100% KRL.
 
 Of note is that modification of the pico engine (i.e. its TypeScript code) is not required.
 
